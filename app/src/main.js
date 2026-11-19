@@ -1,4 +1,4 @@
-// VICE HEAT Cover Studio — wires the editor page: photo upload, panel
+// GOLDEN HOUR Cover Studio — wires the editor page: photo upload, panel
 // picking, layout and grade controls, caption editing, live preview and the
 // PNG exports. A `?shot=` query sets up a fixed scene for a screenshot
 // instead (./shots.js).
@@ -10,14 +10,16 @@ const canvas = document.getElementById('cover');
 const status = document.getElementById('status');
 const state = defaultState();
 const photos = {};
-let selectedPanel = 'heroA';
+let selectedPanel = 'hero';
 let selectedSize = { w: 1920, h: 1080, label: '1920 × 1080' };
 let photoCount = 0;
 
+// Every export size uses the Sunset State layout (the top-1 formula), so
+// the cover looks the same in landscape, square and portrait.
 const SIZES = [
-  { w: 1920, h: 1080, label: '1920 × 1080', layout: 'heatwave' },
-  { w: 1080, h: 1080, label: '1080 × 1080', layout: 'vicegrid' },
-  { w: 1080, h: 1350, label: '1080 × 1350', layout: 'boulevard' },
+  { w: 1920, h: 1080, label: '1920 × 1080', layout: 'sunset' },
+  { w: 1080, h: 1080, label: '1080 × 1080', layout: 'sunset' },
+  { w: 1080, h: 1350, label: '1080 × 1350', layout: 'sunset' },
 ];
 
 /** Loads an image from a URL, resolving once it can be drawn. */
@@ -160,7 +162,7 @@ async function exportPNG(size) {
   off.width = size.w;
   off.height = size.h;
   drawCover(off, state, photos);
-  const name = `vice-heat-${size.w}x${size.h}.png`;
+  const name = `golden-hour-${size.w}x${size.h}.png`;
   off.toBlob((blob) => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -267,12 +269,13 @@ function bindControls() {
 async function init() {
   bindControls();
   buildPanelList();
-  // The two bundled sample photos, so the editor opens with a cover ready.
+  // The six bundled sample photos, so the editor opens with a cover ready.
   // They are registered under the ids the default cover state names.
-  const pier = await loadImage('samples/pier.jpg');
-  addPhoto(pier, 'pier.jpg', 'pier');
-  const boulevard = await loadImage('samples/boulevard.jpg');
-  addPhoto(boulevard, 'boulevard.jpg', 'boulevard');
+  const samples = ['hero', 'face', 'road', 'gas', 'moto', 'boat'];
+  for (const id of samples) {
+    const img = await loadImage(`samples/${id}.jpg`);
+    addPhoto(img, `${id}.jpg`, id);
+  }
   // Rebuild the panel source list now that the photos exist.
   refreshPanelControls();
   await loadFonts();

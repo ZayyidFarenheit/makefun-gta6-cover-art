@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VICE HEAT Cover Studio — GTA 6-style cover art maker</title>
+<title>GOLDEN HOUR Cover Studio — GTA 6-style cover art maker</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <main class="app">
   <section class="controls" aria-label="Cover controls">
-    <h1>VICE HEAT <span>Cover Studio</span></h1>
-    <p class="tagline">Your photos into multi-panel GTA-style cover art. Pick a layout, a grade, a caption — export a PNG to share.</p>
+    <h1>GOLDEN HOUR <span>Cover Studio</span></h1>
+    <p class="tagline">Your photos into cinematic GTA-style cover art. Pick a layout, a grade, a caption — export a PNG to share.</p>
 
     <label class="field">Photos <input id="photo" type="file" accept="image/*" multiple></label>
     <div id="tray" class="tray" aria-label="Loaded photos"></div>
@@ -18,7 +18,7 @@
 
     <fieldset>
       <legend>Panel</legend>
-      <p id="panel-name" class="panel-name">Panel: heroA</p>
+      <p id="panel-name" class="panel-name">Panel: hero</p>
       <div id="panel-list" class="chips"></div>
       <label class="field">Fill <select id="panel-source"></select></label>
       <label class="field">Zoom <input id="panel-zoom" type="range" min="1" max="2.5" step="0.05" value="1"></label>
@@ -35,15 +35,15 @@
     <fieldset>
       <legend>Colour grade</legend>
       <div id="grade-pick" class="chips"></div>
-      <label class="check"><input id="poster-ink" type="checkbox" checked> Poster Ink halftone</label>
+      <label class="check"><input id="poster-ink" type="checkbox"> Poster Ink halftone</label>
     </fieldset>
 
     <fieldset>
       <legend>Caption</legend>
       <label class="field">Kicker <input id="kicker" type="text" maxlength="40" value="WELCOME TO VICE CITY"></label>
-      <label class="field">Title <input id="title" type="text" maxlength="24" value="VICE HEAT"></label>
-      <label class="field">Script subtitle <input id="subtitle" type="text" maxlength="40" value="Neon Coast Nights"></label>
-      <label class="field">Tagline <input id="tagline" type="text" maxlength="40" value="THE CITY NEVER SLEEPS"></label>
+      <label class="field">Title <input id="title" type="text" maxlength="24" value="GOLDEN HOUR"></label>
+      <label class="field">Script subtitle <input id="subtitle" type="text" maxlength="40" value="Neon Dusk"></label>
+      <label class="field">Tagline <input id="tagline" type="text" maxlength="40" value="ONE COAST · NO RULES · COMING SOON"></label>
       <label class="field">Wanted stars
         <select id="stars">
           <option value="5" selected>★★★★★ (5)</option>
@@ -52,7 +52,7 @@
           <option value="0">None</option>
         </select>
       </label>
-      <label class="check"><input id="badge" type="checkbox" checked> Starburst badge</label>
+      <label class="check"><input id="badge" type="checkbox" checked> Seal badge</label>
     </fieldset>
 
     <fieldset>

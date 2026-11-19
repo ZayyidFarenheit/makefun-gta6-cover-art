@@ -1,16 +1,25 @@
 // Fixed scenes for screenshots: ?shot=editor shows the page with the sample
 // photos loaded; ?shot=cover shows the cover alone at the requested size and
-// layout. window.__shotReady is set once painted, so a screenshot runner
-// knows the scene is ready.
+// layout. Query overrides: size (e.g. 1920x1080), layout, grade, poster
+// (on/off), title, subtitle, kicker, tagline. window.__shotReady is set
+// once painted, so a screenshot runner knows the scene is ready.
 export async function runShot(shot, query, state, photos, redraw) {
   const size = (query.get('size') || '1920x1080').split('x').map(Number);
   const layout = query.get('layout');
   const grade = query.get('grade');
   const poster = query.get('poster');
+  const title = query.get('title');
+  const subtitle = query.get('subtitle');
+  const kicker = query.get('kicker');
+  const tagline = query.get('tagline');
   if (layout) state.layout = layout;
   if (grade) state.grade = grade;
   if (poster === 'off') state.posterInk = false;
   if (poster === 'on') state.posterInk = true;
+  if (title) state.title = title;
+  if (subtitle) state.subtitle = subtitle;
+  if (kicker) state.kicker = kicker;
+  if (tagline) state.tagline = tagline;
   if (shot === 'cover') {
     document.body.classList.add('shot-cover');
     const canvas = document.getElementById('cover');

@@ -1,7 +1,8 @@
 // Built-in drawn scenes for cover panels: a sunset sky, palm silhouettes, a
-// city skyline and a beach. Every scene is drawn with canvas paths only, so
-// the cover stays rich even when the maker has loaded just one photo.
-// Each scene draws inside the rectangle (x, y, w, h) of the given context.
+// city skyline, a beach and a dusk sky. Every scene is drawn with canvas
+// paths only, so the cover stays rich even when the maker has loaded just
+// one photo. Each scene draws inside the rectangle (x, y, w, h) of the
+// given context.
 
 function skyGradient(ctx, x, y, w, h, stops) {
   const g = ctx.createLinearGradient(0, y, 0, y + h);
@@ -126,5 +127,35 @@ export function drawBeach(ctx, x, y, w, h) {
   ctx.fill();
 }
 
-export const SCENES = { sunset: drawSunset, palms: drawPalms, skyline: drawSkyline, beach: drawBeach };
-export const SCENE_NAMES = { sunset: 'Sunset', palms: 'Palms', skyline: 'Skyline', beach: 'Beach' };
+/** A deep dusk sky: a crescent moon, early stars and a dark sea band. */
+export function drawDusk(ctx, x, y, w, h) {
+  skyGradient(ctx, x, y, w, h, [
+    [0, '#0b1035'],
+    [0.55, '#3b1d6e'],
+    [1, '#a4138f'],
+  ]);
+  // Crescent moon: two overlapping discs, the second in sky colour.
+  sunDisc(ctx, x + w * 0.72, y + h * 0.28, Math.min(w, h) * 0.13, '#fff3c4');
+  ctx.fillStyle = '#3b1d6e';
+  ctx.beginPath();
+  ctx.arc(x + w * 0.68, y + h * 0.24, Math.min(w, h) * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  // Early stars.
+  ctx.fillStyle = '#ffe9a8';
+  for (let i = 0; i < 22; i++) {
+    const sx = x + ((i * 0.61) % 0.95) * w;
+    const sy = y + ((i * 0.37) % 0.5) * h;
+    const sr = Math.max(1, Math.min(w, h) * 0.006);
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(20, 4, 31, 0.6)';
+  ctx.fillRect(x, y + h * 0.8, w, h * 0.2);
+  const s = Math.min(w, h) * 0.5;
+  palmTree(ctx, x + w * 0.15, y + h * 0.98, s, '#0d0218');
+  palmTree(ctx, x + w * 0.85, y + h, s * 0.9, '#0d0218');
+}
+
+export const SCENES = { sunset: drawSunset, palms: drawPalms, skyline: drawSkyline, beach: drawBeach, dusk: drawDusk };
+export const SCENE_NAMES = { sunset: 'Sunset', palms: 'Palms', skyline: 'Skyline', beach: 'Beach', dusk: 'Dusk' };

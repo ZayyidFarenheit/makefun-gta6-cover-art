@@ -1,4 +1,4 @@
-// VICE HEAT Cover Studio — the entrypoint for make.fun's gta6-cover-art-01.
+// GOLDEN HOUR Cover Studio — the entrypoint for make.fun's gta6-cover-art-01.
 // Node 22, standard library only. It hands the app in: it copies app/ and
 // screenshots/ from beside this file to /output and writes /output/dossier.json,
 // the summary the judge reads, with the vendored make.fun library.
@@ -15,11 +15,18 @@ const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
 // Pre-flight: refuse to hand in an entry the gate would refuse for its
 // screenshots (more than 4, or one over 256 KiB), with a plain message
-// naming the file, instead of a silent invalid entry.
+// naming the file, instead of a silent invalid entry. The first screenshot
+// by name is the cover, so it must exist. The app must also ship at least
+// one sample photo, or the cover opens empty.
+const samplesDir = join(here, 'app', 'samples');
+if (!existsSync(samplesDir) || readdirSync(samplesDir).filter((f) => /\.(jpe?g|png|webp)$/i.test(f)).length === 0) {
+  throw new Error('app/samples: no sample photo found, the cover needs at least one');
+}
 const shotsDir = join(here, 'screenshots');
 if (existsSync(shotsDir)) {
-  const shots = readdirSync(shotsDir).filter((f) => !f.startsWith('.'));
+  const shots = readdirSync(shotsDir).filter((f) => !f.startsWith('.')).sort();
   if (shots.length > 4) throw new Error(`screenshots: ${shots.length} files, the gate allows at most 4`);
+  if (shots.length === 0) throw new Error('screenshots: no screenshot found, the first by name must be the cover');
   for (const f of shots) {
     const bytes = statSync(join(shotsDir, f)).size;
     if (bytes > 262144) throw new Error(`screenshots: ${f} is ${bytes} bytes, the gate allows at most 262144`);
