@@ -1,75 +1,88 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GOLDEN HOUR Cover Studio — GTA 6-style cover art maker</title>
-<link rel="stylesheet" href="./style.css">
+<title>GOLDEN HOUR Cover Studio — your photos into cinematic GTA-style cover art</title>
+<meta name="description" content="Turn your photos into cinematic GTA-style cover art: a big hero photo, side panels, a sunset grade, a gradient title and neon script. Export a PNG in 1920x1080, 1080x1080 or 1080x1350.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23ff4d8d'/%3E%3Ctext x='32' y='43' font-family='Arial,sans-serif' font-size='28' font-weight='bold' fill='white' text-anchor='middle'%3EGH%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="app">
-  <section class="controls" aria-label="Cover controls">
-    <h1>GOLDEN HOUR <span>Cover Studio</span></h1>
-    <p class="tagline">Your photos into cinematic GTA-style cover art. Pick a layout, a grade, a caption — export a PNG to share.</p>
+<header class="masthead">
+  <div class="brand">
+    <span class="brand-mark">GH</span>
+    <div>
+      <h1>GOLDEN HOUR</h1>
+      <p>Cover Studio</p>
+    </div>
+  </div>
+  <p class="masthead-note">Your photos into cinematic GTA-style cover art. Pick a layout, a grade, a caption — export a PNG to share.</p>
+</header>
 
-    <label class="field">Photos <input id="photo" type="file" accept="image/*" multiple></label>
-    <div id="tray" class="tray" aria-label="Loaded photos"></div>
-    <p class="hint">Click a photo to put it in the selected panel. Click a panel on the cover to select it.</p>
+<main class="studio">
+  <aside class="editor" aria-label="Cover editor">
+    <section class="group">
+      <h2>Photos</h2>
+      <label class="file-label" for="photo-input">Choose Files</label>
+      <input id="photo-input" type="file" accept="image/*" multiple>
+      <div id="photo-strip" class="photo-strip" role="listbox" aria-label="Photos"></div>
+      <p class="hint">Click a photo to put it in the selected panel. Click a panel on the cover to select it.</p>
+    </section>
 
-    <fieldset>
-      <legend>Panel</legend>
+    <section class="group">
+      <h2>Panel</h2>
       <p id="panel-name" class="panel-name">Panel: hero</p>
-      <div id="panel-list" class="chips"></div>
-      <label class="field">Fill <select id="panel-source"></select></label>
-      <label class="field">Zoom <input id="panel-zoom" type="range" min="1" max="2.5" step="0.05" value="1"></label>
-      <label class="field">Shift left–right <input id="panel-ox" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label>
-      <label class="field">Shift up–down <input id="panel-oy" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label>
-      <button id="fill-all" type="button">Fill every panel with this photo</button>
-    </fieldset>
+      <div id="panel-picker" class="picker" role="group" aria-label="Panel"></div>
+      <label for="fill-select">Fill</label>
+      <select id="fill-select"></select>
+      <label for="zoom-range">Zoom</label>
+      <input id="zoom-range" type="range" min="1" max="2.5" step="0.01" value="1">
+      <label for="shift-x-range">Shift left–right</label>
+      <input id="shift-x-range" type="range" min="-0.5" max="0.5" step="0.01" value="0">
+      <label for="shift-y-range">Shift up–down</label>
+      <input id="shift-y-range" type="range" min="-0.5" max="0.5" step="0.01" value="0">
+      <button id="fill-all-btn" type="button" class="primary">Fill every panel with this photo</button>
+    </section>
 
-    <fieldset>
-      <legend>Layout</legend>
-      <div id="layout-pick" class="chips"></div>
-    </fieldset>
+    <section class="group">
+      <h2>Layout</h2>
+      <div id="layout-picker" class="picker" role="group" aria-label="Layout"></div>
+    </section>
 
-    <fieldset>
-      <legend>Colour grade</legend>
-      <div id="grade-pick" class="chips"></div>
-      <label class="check"><input id="poster-ink" type="checkbox"> Poster Ink halftone</label>
-    </fieldset>
-
-    <fieldset>
-      <legend>Caption</legend>
-      <label class="field">Kicker <input id="kicker" type="text" maxlength="40" value="WELCOME TO VICE CITY"></label>
-      <label class="field">Title <input id="title" type="text" maxlength="24" value="GOLDEN HOUR"></label>
-      <label class="field">Script subtitle <input id="subtitle" type="text" maxlength="40" value="Neon Dusk"></label>
-      <label class="field">Tagline <input id="tagline" type="text" maxlength="40" value="ONE COAST · NO RULES · COMING SOON"></label>
-      <label class="field">Wanted stars
-        <select id="stars">
-          <option value="5" selected>★★★★★ (5)</option>
-          <option value="4">★★★★ (4)</option>
-          <option value="3">★★★ (3)</option>
-          <option value="0">None</option>
-        </select>
+    <section class="group">
+      <h2>Grade</h2>
+      <div id="grade-picker" class="picker" role="group" aria-label="Grade"></div>
+      <label class="check">
+        <input id="halftone-toggle" type="checkbox">
+        Poster Ink halftone (off by default)
       </label>
-      <label class="check"><input id="badge" type="checkbox" checked> Seal badge</label>
-    </fieldset>
+    </section>
 
-    <fieldset>
-      <legend>Export PNG</legend>
-      <div id="size-pick" class="chips"></div>
-      <div class="exports">
-        <button id="export-1920x1080" type="button">Export 1920 × 1080</button>
-        <button id="export-1080x1080" type="button">Export 1080 × 1080</button>
-        <button id="export-1080x1350" type="button">Export 1080 × 1350</button>
-      </div>
-      <p id="status" role="status"></p>
-    </fieldset>
-  </section>
-  <section class="preview" aria-label="Live preview">
-    <canvas id="cover" width="960" height="540" aria-label="The cover"></canvas>
+    <section class="group">
+      <h2>Caption</h2>
+      <label for="kicker-input">Kicker</label>
+      <input id="kicker-input" type="text" maxlength="60">
+      <label for="title-input">Title</label>
+      <input id="title-input" type="text" maxlength="30">
+      <label for="script-input">Neon script</label>
+      <input id="script-input" type="text" maxlength="30">
+      <label for="tagline-input">Tagline strip</label>
+      <input id="tagline-input" type="text" maxlength="60">
+    </section>
+
+    <section class="group">
+      <h2>Export PNG</h2>
+      <div id="export-buttons" class="export-buttons"></div>
+    </section>
+  </aside>
+
+  <section class="preview" aria-label="Live cover preview">
+    <canvas id="cover-preview" width="1280" height="720"></canvas>
+    <p class="preview-note">Live preview — what you see is what the PNG exports.</p>
   </section>
 </main>
-<script type="module" src="./src/main.js"></script>
+
+<script type="module" src="src/main.js"></script>
 </body>
 </html>

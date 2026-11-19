@@ -1,29 +1,45 @@
-# GOLDEN HOUR Cover Studio — GTA 6-style cover art maker
+# GOLDEN HOUR Cover Studio
 
-Turn your photos into cinematic GTA-style cover art: one big hero photo, three stacked panels, a huge gradient title overlapping the photos, a neon script subtitle, wanted stars and the "WELCOME TO VICE CITY" kicker — then export a PNG to share in 1920×1080, 1080×1080 or 1080×1350.
+[![gta6-cover-art-01](https://make.fun/badge/gta6-cover-art-01.svg)](https://make.fun/bounty/gta6-cover-art-01)
+[![rank](https://make.fun/badge/gta6-cover-art-01/ZayyidFarenheit/makefun-gta6-cover-art/rank.svg)](https://make.fun/bounty/gta6-cover-art-01)
+[![reward](https://make.fun/badge/gta6-cover-art-01/ZayyidFarenheit/makefun-gta6-cover-art/reward.svg)](https://make.fun/bounty/gta6-cover-art-01)
 
-The cover maker is a static web app under `app/` — it runs offline in desktop Chrome with no network request. Photos are read on your own machine and never uploaded. The six bundled sample photos are AI-generated for this entry. The fonts (Anton and Pacifico, SIL Open Font License) are bundled under `app/fonts/`.
+Your photos into cinematic GTA-style cover art — a big hero photo, side panels, a sunset grade, a gradient title and neon script. Export a PNG in 1920×1080, 1080×1080 or 1080×1350.
 
-[![make.fun · gta6-cover-art-01](https://make.fun/badge/gta6-cover-art-01.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
-[![rank](https://make.fun/badge/gta6-cover-art-01/ZayyidFarenheit/makefun-gta6-cover-art/rank.svg)](https://make.fun/bounty/gta6-cover-art-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
-[![reward](https://make.fun/badge/gta6-cover-art-01/ZayyidFarenheit/makefun-gta6-cover-art/reward.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
+Made for the [Make GTA 6 Cover Art](https://make.fun/bounty/gta6-cover-art-01) bounty on [make.fun](https://make.fun/bounty/gta6-cover-art-01).
 
-Entry for [make.fun/bounty/gta6-cover-art-01](https://make.fun/bounty/gta6-cover-art-01).
+## What it does
 
-## How it works
+- **Sunset State layout** (default): one big cinematic hero photo on the left, five panels on the right, a giant gradient title overlapping the hero, a neon script, a kicker with five wanted stars, a round "ORIGINAL COVER ART" seal, a tagline strip and a credits footer.
+- **4 layouts**: Sunset State, Heatwave, Vice Grid, Boulevard.
+- **4 grades**: Cinematic (warm and photoreal, default), Neon Dusk, Golden Coast, Vice Nights — plus an optional Poster Ink halftone toggle (off by default).
+- **Any photo**: upload your own photos, or use the six glamorous sample photos. Crop and position each panel (zoom, shift left–right, shift up–down), or fill every panel with one photo.
+- **Caption**: edit the kicker ("WELCOME TO VICE CITY"), the title ("GOLDEN HOUR"), the neon script ("Neon Dusk") and the tagline strip ("ONE COAST · NO RULES · COMING SOON").
+- **Export PNG** in the three common post sizes: 1920×1080, 1080×1080, 1080×1350.
+- **Offline**: every font, photo and script is a file of this app — nothing loads over the network.
 
-- **Layouts:** Sunset State (the default: big hero left, three stacked panels right, title overlapping the photos, tagline strip and footer), Heatwave, Vice Grid, Boulevard and Neon Strip.
-- **Grades:** Cinematic (the default: a gentle warm treatment that keeps photos photorealistic), Sunset, Neon, Vice Teal and Golden Hour gradient-map grades, plus a Poster Ink halftone toggle for the printed-poster look.
-- **Photos:** upload your own photos, click a panel to select it, then pick its fill (a photo or a drawn scene), zoom and shift it, or fill every panel with one photo.
-- **Caption:** kicker ("WELCOME TO VICE CITY"), wanted-level stars, gradient title, neon script subtitle, tagline strip and a circular "ORIGINAL COVER ART" seal.
-- **Export:** one click per size — 1920×1080, 1080×1080, 1080×1350.
+## Try it
 
-## Run it
-
-Serve `app/` with any static server and open `index.html` in desktop Chrome:
+Serve `app/` with any static file server and open `index.html`, for example:
 
 ```sh
 cd app && python3 -m http.server 8080
 ```
 
-`main.ts` (Node 22, standard library only) hands the entry in: it copies `app/` and `screenshots/` to `/output` and writes `/output/dossier.json`.
+Then open http://localhost:8080.
+
+## Files
+
+- `app/index.html` — the editor page
+- `app/style.css` — the editor's dark violet theme
+- `app/src/main.js` — state, editor wiring, export
+- `app/src/cover.js` — the cover renderer (canvas)
+- `app/src/scenes.js` — the four layouts and four grades
+- `app/src/shots.js` — the sample photos and export sizes
+- `app/samples/` — six sample photos, made with an image model
+- `app/fonts/` — Anton and Pacifico (SIL Open Font License, see `OFL.txt`)
+- `main.ts` — hands the app in: copies `app/` and `screenshots/` to `/output` and writes `/output/dossier.json`
+
+## License
+
+MIT — see [LICENSE](LICENSE). The fonts are licensed under the SIL Open Font License 1.1 (see `app/fonts/OFL.txt`).

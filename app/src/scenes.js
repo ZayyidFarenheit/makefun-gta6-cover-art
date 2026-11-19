@@ -1,161 +1,286 @@
-// Built-in drawn scenes for cover panels: a sunset sky, palm silhouettes, a
-// city skyline, a beach and a dusk sky. Every scene is drawn with canvas
-// paths only, so the cover stays rich even when the maker has loaded just
-// one photo. Each scene draws inside the rectangle (x, y, w, h) of the
-// given context.
+// GOLDEN HOUR Cover Studio — layouts and colour grades.
+//
+// A layout is a function of the cover's pixel size (w, h). It returns the
+// geometry the renderer needs: every photo panel as a pixel rectangle, plus
+// where the title, the neon script, the kicker, the seal, the tagline strip
+// and the footer go. Layouts adapt to the cover's shape: a wide cover puts
+// the hero on the left with panels stacked on the right; a tall cover stacks
+// the hero on top and the panels in a grid below it.
+//
+// All coordinates are fractions of the cover size until the layout function
+// turns them into pixels, so one layout works at 1920x1080, 1080x1080 and
+// 1080x1350 alike.
 
-function skyGradient(ctx, x, y, w, h, stops) {
-  const g = ctx.createLinearGradient(0, y, 0, y + h);
-  for (const [at, color] of stops) g.addColorStop(at, color);
-  ctx.fillStyle = g;
-  ctx.fillRect(x, y, w, h);
+/** The four layouts the studio offers, in the order the editor shows them. */
+export const LAYOUTS = [
+  { id: 'sunset', name: 'Sunset State', blurb: 'Big cinematic hero, side panels' },
+  { id: 'heatwave', name: 'Heatwave', blurb: 'Mosaic of panels, hero on top' },
+  { id: 'grid', name: 'Vice Grid', blurb: 'Even grid of six panels' },
+  { id: 'boulevard', name: 'Boulevard', blurb: 'One wide photo, title band' },
+];
+
+/** The four colour grades, in the order the editor shows them. */
+export const GRADES = [
+  { id: 'cinematic', name: 'Cinematic', blurb: 'Warm and soft, photos stay photoreal' },
+  { id: 'neon', name: 'Neon Dusk', blurb: 'Pink and purple night glow' },
+  { id: 'golden', name: 'Golden Coast', blurb: 'Deep gold, high summer' },
+  { id: 'vice', name: 'Vice Nights', blurb: 'Cool blue after dark' },
+];
+
+/**
+ * A grade: a CSS filter string the renderer sets on the canvas context
+ * while it draws a photo, plus a tint colour it washes over the photo
+ * with a soft-light blend, and the colours the title gradient and the
+ * tagline strip take under this grade.
+ */
+export const GRADE_STYLE = {
+  cinematic: {
+    filter: 'saturate(1.18) contrast(1.06) sepia(0.14) brightness(1.02)',
+    tint: 'rgba(255, 150, 60, 0.10)',
+    titleTop: '#ffffff',
+    titleMid: '#ffd9a0',
+    titleBottom: '#ff7a1a',
+    strip: ['#ff2e7e', '#c81d6e'],
+  },
+  neon: {
+    filter: 'saturate(1.35) contrast(1.12) hue-rotate(-18deg) brightness(0.98)',
+    tint: 'rgba(255, 40, 160, 0.12)',
+    titleTop: '#fff0fa',
+    titleMid: '#ffb3e2',
+    titleBottom: '#ff2e9e',
+    strip: ['#b537f2', '#6d28a8'],
+  },
+  golden: {
+    filter: 'sepia(0.38) saturate(1.45) contrast(1.05) brightness(1.03)',
+    tint: 'rgba(255, 190, 40, 0.12)',
+    titleTop: '#fffbe8',
+    titleMid: '#ffe27a',
+    titleBottom: '#ff9d00',
+    strip: ['#ff8a00', '#e85d04'],
+  },
+  vice: {
+    filter: 'saturate(1.25) contrast(1.12) hue-rotate(18deg) brightness(0.96)',
+    tint: 'rgba(60, 80, 255, 0.12)',
+    titleTop: '#eef4ff',
+    titleMid: '#a8c8ff',
+    titleBottom: '#4d7dff',
+    strip: ['#3b2fd6', '#1d1a5e'],
+  },
+};
+
+/** Clamp a number into [lo, hi]. */
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * The shared chrome of every layout: the tagline strip and the footer.
+ * Returns their pixel rectangles plus the photo area (everything above the
+ * strip), so each layout only has to arrange photos inside that area.
+ */
+function chrome(w, h) {
+  const stripH = Math.round(h * 0.075);
+  const footH = Math.round(h * 0.055);
+  const photoH = h - stripH - footH;
+  return {
+    strip: { x: 0, y: photoH, w, h: stripH },
+    footer: { x: 0, y: photoH + stripH, w, h: footH },
+    photo: { x: 0, y: 0, w, h: photoH },
+  };
 }
 
-function sunDisc(ctx, cx, cy, r, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function palmTree(ctx, x, y, s, color) {
-  // One palm silhouette: a slim curved trunk and seven drooping fronds.
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.lineWidth = Math.max(1.5, s * 0.035);
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.quadraticCurveTo(x + s * 0.1, y - s * 0.5, x + s * 0.26, y - s * 0.92);
-  ctx.stroke();
-  const topX = x + s * 0.26;
-  const topY = y - s * 0.92;
-  for (let i = 0; i < 7; i++) {
-    const a = (-0.05 - i * 0.24) * Math.PI;
-    const ex = topX + Math.cos(a) * s * 0.5;
-    const ey = topY + Math.sin(a) * s * 0.2 + s * 0.3;
-    ctx.beginPath();
-    ctx.moveTo(topX, topY);
-    ctx.quadraticCurveTo(topX + Math.cos(a) * s * 0.28, topY - s * 0.1, ex, ey);
-    ctx.lineWidth = Math.max(1, s * 0.018);
-    ctx.stroke();
+/**
+ * Panel rectangles for the Sunset State layout: one big hero on the left
+ * (about 60% of the width) and five panels on the right — two small on top,
+ * one wide in the middle, two small at the bottom. On a tall cover the
+ * hero moves to the top and the panels form a grid underneath.
+ */
+function sunsetPanels(w, h) {
+  const c = chrome(w, h);
+  const a = c.photo;
+  const gap = Math.max(3, Math.round(w * 0.004));
+  if (w >= h) {
+    const heroW = Math.round(a.w * 0.6);
+    const rx = a.x + heroW + gap;
+    const rw = a.x + a.w - rx;
+    const topH = Math.round(a.h * 0.32);
+    const midH = Math.round(a.h * 0.33);
+    const botH = a.h - topH - midH - gap * 2;
+    const halfW = Math.round((rw - gap) / 2);
+    return {
+      chrome: c,
+      panels: [
+        { id: 'hero', x: a.x, y: a.y, w: heroW, h: a.h },
+        { id: 'face', x: rx, y: a.y, w: halfW, h: topH },
+        { id: 'road', x: rx + halfW + gap, y: a.y, w: rw - halfW - gap, h: topH },
+        { id: 'gas', x: rx, y: a.y + topH + gap, w: rw, h: midH },
+        { id: 'moto', x: rx, y: a.y + topH + gap + midH + gap, w: halfW, h: botH },
+        { id: 'boat', x: rx + halfW + gap, y: a.y + topH + gap + midH + gap, w: rw - halfW - gap, h: botH },
+      ],
+    };
   }
-  // A small coconut cluster under the crown.
-  ctx.beginPath();
-  ctx.arc(topX + s * 0.03, topY + s * 0.05, s * 0.035, 0, Math.PI * 2);
-  ctx.arc(topX - s * 0.03, topY + s * 0.06, s * 0.03, 0, Math.PI * 2);
-  ctx.fill();
+  const heroH = Math.round(a.h * 0.48);
+  const gy = a.y + heroH + gap;
+  const gh = a.h - heroH - gap;
+  const rowH = Math.round((gh - gap) / 2);
+  const colW = Math.round((a.w - gap * 2) / 3);
+  return {
+    chrome: c,
+    panels: [
+      { id: 'hero', x: a.x, y: a.y, w: a.w, h: heroH },
+      { id: 'face', x: a.x, y: gy, w: colW, h: rowH },
+      { id: 'road', x: a.x + colW + gap, y: gy, w: colW, h: rowH },
+      { id: 'gas', x: a.x + colW * 2 + gap * 2, y: gy, w: a.w - colW * 2 - gap * 2, h: rowH },
+      { id: 'moto', x: a.x, y: gy + rowH + gap, w: Math.round(a.w / 2) - Math.round(gap / 2), h: gh - rowH - gap },
+      { id: 'boat', x: a.x + Math.round(a.w / 2) + Math.round(gap / 2), y: gy + rowH + gap, w: a.w - Math.round(a.w / 2) - Math.round(gap / 2), h: gh - rowH - gap },
+    ],
+  };
 }
 
-/** A sunset sky with a low sun and a glowing sea band. */
-export function drawSunset(ctx, x, y, w, h) {
-  skyGradient(ctx, x, y, w, h, [
-    [0, '#ff9a3d'],
-    [0.45, '#ff5e7a'],
-    [0.8, '#a4138f'],
-    [1, '#3b0f6e'],
-  ]);
-  sunDisc(ctx, x + w * 0.62, y + h * 0.42, Math.min(w, h) * 0.16, '#ffe9a8');
-  ctx.fillStyle = 'rgba(255, 233, 168, 0.35)';
-  ctx.fillRect(x, y + h * 0.72, w, h * 0.06);
-  ctx.fillStyle = 'rgba(20, 4, 31, 0.55)';
-  ctx.fillRect(x, y + h * 0.82, w, h * 0.18);
-}
-
-/** Palm silhouettes against a sunset, with a sea band at the foot. */
-export function drawPalms(ctx, x, y, w, h) {
-  skyGradient(ctx, x, y, w, h, [
-    [0, '#ffd166'],
-    [0.5, '#ff7a3d'],
-    [1, '#c22e6e'],
-  ]);
-  sunDisc(ctx, x + w * 0.5, y + h * 0.55, Math.min(w, h) * 0.14, '#fff3c4');
-  ctx.fillStyle = 'rgba(20, 4, 31, 0.45)';
-  ctx.fillRect(x, y + h * 0.78, w, h * 0.22);
-  const s = Math.min(w, h) * 0.62;
-  palmTree(ctx, x + w * 0.2, y + h * 0.98, s, '#1c0533');
-  palmTree(ctx, x + w * 0.68, y + h, s * 1.1, '#240842');
-  palmTree(ctx, x + w * 0.92, y + h * 0.95, s * 0.75, '#1c0533');
-}
-
-/** A city skyline at dusk, windows lit. */
-export function drawSkyline(ctx, x, y, w, h) {
-  skyGradient(ctx, x, y, w, h, [
-    [0, '#2b1055'],
-    [0.55, '#a4138f'],
-    [1, '#ff7a3d'],
-  ]);
-  sunDisc(ctx, x + w * 0.78, y + h * 0.3, Math.min(w, h) * 0.1, '#ffe9a8');
-  const buildings = [
-    [0.0, 0.55, 0.16, 0.45], [0.14, 0.4, 0.14, 0.6], [0.3, 0.62, 0.12, 0.38],
-    [0.44, 0.32, 0.16, 0.68], [0.62, 0.5, 0.13, 0.5], [0.77, 0.38, 0.15, 0.62],
-    [0.9, 0.58, 0.1, 0.42],
-  ];
-  ctx.fillStyle = '#160428';
-  for (const [bx, by, bw, bh] of buildings) {
-    ctx.fillRect(x + bx * w, y + by * h, bw * w, bh * h);
+/**
+ * Panel rectangles for the Heatwave layout: a mosaic — the hero spans the
+ * top-left, the gas station takes the bottom-left, and the right side is a
+ * column of three smaller panels.
+ */
+function heatwavePanels(w, h) {
+  const c = chrome(w, h);
+  const a = c.photo;
+  const gap = Math.max(3, Math.round(w * 0.004));
+  if (w >= h) {
+    const leftW = Math.round(a.w * 0.52);
+    const rx = a.x + leftW + gap;
+    const rw = a.x + a.w - rx;
+    const topH = Math.round(a.h * 0.55);
+    const thirdH = Math.round((a.h - gap * 2) / 3);
+    return {
+      chrome: c,
+      panels: [
+        { id: 'hero', x: a.x, y: a.y, w: leftW, h: topH },
+        { id: 'gas', x: a.x, y: a.y + topH + gap, w: leftW, h: a.h - topH - gap },
+        { id: 'face', x: rx, y: a.y, w: rw, h: thirdH },
+        { id: 'road', x: rx, y: a.y + thirdH + gap, w: rw, h: thirdH },
+        { id: 'boat', x: rx, y: a.y + thirdH * 2 + gap * 2, w: rw, h: a.h - thirdH * 2 - gap * 2 },
+        { id: 'moto', x: a.x, y: a.y, w: 0, h: 0 },
+      ].filter((p) => p.w > 0 && p.h > 0),
+    };
   }
-  ctx.fillStyle = '#ffd166';
-  for (let i = 0; i < 26; i++) {
-    const bx = (i * 0.37) % 0.95;
-    const by = 0.4 + ((i * 0.53) % 0.45);
-    ctx.fillRect(x + bx * w, y + by * h, Math.max(1.5, w * 0.008), Math.max(1.5, h * 0.02));
+  const heroH = Math.round(a.h * 0.45);
+  const gy = a.y + heroH + gap;
+  const gh = a.h - heroH - gap;
+  const halfW = Math.round((a.w - gap) / 2);
+  const rowH = Math.round((gh - gap) / 2);
+  return {
+    chrome: c,
+    panels: [
+      { id: 'hero', x: a.x, y: a.y, w: a.w, h: heroH },
+      { id: 'gas', x: a.x, y: gy, w: halfW, h: rowH },
+      { id: 'face', x: a.x + halfW + gap, y: gy, w: a.w - halfW - gap, h: rowH },
+      { id: 'road', x: a.x, y: gy + rowH + gap, w: halfW, h: gh - rowH - gap },
+      { id: 'moto', x: a.x + halfW + gap, y: gy + rowH + gap, w: a.w - halfW - gap, h: gh - rowH - gap },
+      { id: 'boat', x: a.x, y: gy, w: 0, h: 0 },
+    ].filter((p) => p.w > 0 && p.h > 0),
+  };
+}
+
+/** Panel rectangles for the Vice Grid layout: six panels in an even grid. */
+function gridPanels(w, h) {
+  const c = chrome(w, h);
+  const a = c.photo;
+  const gap = Math.max(3, Math.round(w * 0.004));
+  const cols = w >= h ? 3 : 2;
+  const rows = w >= h ? 2 : 3;
+  const cw = Math.round((a.w - gap * (cols - 1)) / cols);
+  const rh = Math.round((a.h - gap * (rows - 1)) / rows);
+  const ids = ['hero', 'face', 'road', 'gas', 'moto', 'boat'];
+  const panels = [];
+  let n = 0;
+  for (let r = 0; r < rows; r++) {
+    for (let col = 0; col < cols; col++) {
+      const id = ids[n++];
+      panels.push({
+        id,
+        x: a.x + col * (cw + gap),
+        y: a.y + r * (rh + gap),
+        w: col === cols - 1 ? a.x + a.w - (a.x + col * (cw + gap)) : cw,
+        h: r === rows - 1 ? a.y + a.h - (a.y + r * (rh + gap)) : rh,
+      });
+    }
   }
+  return { chrome: c, panels };
 }
 
-/** A beach with a lifeguard tower and a low sun. */
-export function drawBeach(ctx, x, y, w, h) {
-  skyGradient(ctx, x, y, w, h, [
-    [0, '#ff9a3d'],
-    [0.5, '#ff5e7a'],
-    [1, '#7b1e5b'],
-  ]);
-  sunDisc(ctx, x + w * 0.3, y + h * 0.32, Math.min(w, h) * 0.13, '#fff3c4');
-  ctx.fillStyle = '#e85d75';
-  ctx.fillRect(x, y + h * 0.62, w, h * 0.14);
-  ctx.fillStyle = '#f7c873';
-  ctx.fillRect(x, y + h * 0.76, w, h * 0.24);
-  // Lifeguard tower silhouette.
-  ctx.fillStyle = '#2b0a3d';
-  const tx = x + w * 0.68;
-  ctx.fillRect(tx, y + h * 0.42, w * 0.03, h * 0.34);
-  ctx.fillRect(tx - w * 0.05, y + h * 0.36, w * 0.13, h * 0.08);
-  ctx.beginPath();
-  ctx.moveTo(tx - w * 0.07, y + h * 0.36);
-  ctx.lineTo(tx + w * 0.015, y + h * 0.28);
-  ctx.lineTo(tx + w * 0.1, y + h * 0.36);
-  ctx.closePath();
-  ctx.fill();
+/**
+ * Panel rectangles for the Boulevard layout: one wide photo fills the whole
+ * photo area, and the title sits on a band across its lower third.
+ */
+function boulevardPanels(w, h) {
+  const c = chrome(w, h);
+  const a = c.photo;
+  return {
+    chrome: c,
+    panels: [
+      { id: 'hero', x: a.x, y: a.y, w: a.w, h: a.h },
+      { id: 'face', x: a.x, y: a.y, w: 0, h: 0 },
+      { id: 'road', x: a.x, y: a.y, w: 0, h: 0 },
+      { id: 'gas', x: a.x, y: a.y, w: 0, h: 0 },
+      { id: 'moto', x: a.x, y: a.y, w: 0, h: 0 },
+      { id: 'boat', x: a.x, y: a.y, w: 0, h: 0 },
+    ].filter((p) => p.w > 0 && p.h > 0),
+  };
 }
 
-/** A deep dusk sky: a crescent moon, early stars and a dark sea band. */
-export function drawDusk(ctx, x, y, w, h) {
-  skyGradient(ctx, x, y, w, h, [
-    [0, '#0b1035'],
-    [0.55, '#3b1d6e'],
-    [1, '#a4138f'],
-  ]);
-  // Crescent moon: two overlapping discs, the second in sky colour.
-  sunDisc(ctx, x + w * 0.72, y + h * 0.28, Math.min(w, h) * 0.13, '#fff3c4');
-  ctx.fillStyle = '#3b1d6e';
-  ctx.beginPath();
-  ctx.arc(x + w * 0.68, y + h * 0.24, Math.min(w, h) * 0.12, 0, Math.PI * 2);
-  ctx.fill();
-  // Early stars.
-  ctx.fillStyle = '#ffe9a8';
-  for (let i = 0; i < 22; i++) {
-    const sx = x + ((i * 0.61) % 0.95) * w;
-    const sy = y + ((i * 0.37) % 0.5) * h;
-    const sr = Math.max(1, Math.min(w, h) * 0.006);
-    ctx.beginPath();
-    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = 'rgba(20, 4, 31, 0.6)';
-  ctx.fillRect(x, y + h * 0.8, w, h * 0.2);
-  const s = Math.min(w, h) * 0.5;
-  palmTree(ctx, x + w * 0.15, y + h * 0.98, s, '#0d0218');
-  palmTree(ctx, x + w * 0.85, y + h, s * 0.9, '#0d0218');
-}
+const PANEL_BUILDERS = {
+  sunset: sunsetPanels,
+  heatwave: heatwavePanels,
+  grid: gridPanels,
+  boulevard: boulevardPanels,
+};
 
-export const SCENES = { sunset: drawSunset, palms: drawPalms, skyline: drawSkyline, beach: drawBeach, dusk: drawDusk };
-export const SCENE_NAMES = { sunset: 'Sunset', palms: 'Palms', skyline: 'Skyline', beach: 'Beach', dusk: 'Dusk' };
+/**
+ * The full geometry of a cover at pixel size (w, h) for a layout id:
+ * the photo panels, the tagline strip, the footer, and where the title,
+ * the neon script, the kicker and the seal go. Text sizes scale with the
+ * cover so the same layout works at 1920x1080 and at 1080x1350.
+ */
+export function layoutFor(layoutId, w, h) {
+  const build = PANEL_BUILDERS[layoutId] ?? PANEL_BUILDERS.sunset;
+  const { chrome: c, panels } = build(w, h);
+  const photo = c.photo;
+  const wide = w >= h;
+  const titleSize = Math.round((wide ? h : w) * (layoutId === 'boulevard' ? 0.16 : 0.15));
+  const scriptSize = Math.round(titleSize * 0.48);
+  const kickerSize = Math.round(titleSize * 0.21);
+  const hero = panels.find((p) => p.id === 'hero') ?? panels[0];
+  return {
+    panels,
+    strip: c.strip,
+    footer: c.footer,
+    photo,
+    title: {
+      // The title overlaps the hero's lower part, starting at the hero's left.
+      x: hero.x + Math.round(w * 0.015),
+      y: hero.y + hero.h - Math.round(titleSize * 0.95),
+      size: titleSize,
+      maxWidth: wide ? Math.round(w * 0.82) : Math.round(w * 0.94),
+    },
+    script: {
+      // The neon script sits to the right of the hero, over the lower
+      // panels, a little above the hero's bottom edge.
+      x: wide ? hero.x + hero.w + Math.round(w * 0.012) : hero.x + Math.round(w * 0.5),
+      y: hero.y + hero.h - Math.round(scriptSize * 1.05),
+      size: scriptSize,
+    },
+    kicker: {
+      // The kicker sits just above the title's top edge, clear of it.
+      x: hero.x + Math.round(w * 0.02),
+      y: hero.y + hero.h - Math.round(titleSize * 2.05 + kickerSize * 0.5),
+      size: kickerSize,
+    },
+    seal: {
+      // The round seal hangs over the first right-hand panel, or the hero's
+      // top-right corner when there is no side panel.
+      x: wide ? hero.x + hero.w + Math.round(w * 0.06) : hero.x + hero.w - Math.round(w * 0.1),
+      y: wide ? photo.y + Math.round(photo.h * 0.3) : hero.y + Math.round(hero.h * 0.32),
+      r: Math.round((wide ? h : w) * 0.062),
+    },
+    frame: Math.max(2, Math.round(w * 0.004)),
+  };
+}
